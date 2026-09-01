@@ -361,6 +361,7 @@ input::placeholder {
 
 .primary-button,
 .secondary-button,
+.stop-button,
 .text-button,
 .icon-button,
 .shortcut-list button {
@@ -818,6 +819,10 @@ input::placeholder {
   color: var(--success);
 }
 
+.progress-state.is-stopped {
+  color: var(--accent-light);
+}
+
 .progress-state.is-error {
   max-width: 240px;
   overflow: hidden;
@@ -837,6 +842,20 @@ input::placeholder {
 .secondary-button:hover {
   border-color: var(--accent);
   color: var(--accent-light);
+}
+
+.stop-button {
+  padding: 0 15px;
+  border: 1px solid rgb(239 141 123 / 0.48);
+  background: transparent;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.stop-button:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: rgb(239 141 123 / 0.1);
+  transform: translateY(-1px);
 }
 
 .action-group {
@@ -930,7 +949,8 @@ input::placeholder {
   .step-actions .primary-button,
   .fetch-actions .action-group,
   .fetch-actions .primary-button,
-  .fetch-actions .secondary-button {
+  .fetch-actions .secondary-button,
+  .fetch-actions .stop-button {
     width: 100%;
   }
 
@@ -958,3 +978,5 @@ input::placeholder {
     animation-iteration-count: 1 !important;
   }
 }
+
+

@@ -213,6 +213,12 @@
             <span class="selection-hint" id="fetch-summary">รอผลการดึงเนื้อหา</span>
             <div class="action-group">
               <button class="secondary-button" id="reset-button" type="button">เริ่มใหม่</button>
+              <button class="stop-button" id="stop-button" type="button" disabled>
+                <span>หยุดการดึง</span>
+              </button>
+              <button class="secondary-button" id="download-now-button" type="button" disabled>
+                <span>ดาวน์โหลดทันที</span><span class="button-arrow" aria-hidden="true">↓</span>
+              </button>
               <button class="primary-button" id="export-button" type="button" disabled>
                 <span>ดาวน์โหลดไฟล์ .txt</span><span class="button-arrow" aria-hidden="true">↓</span>
               </button>
@@ -234,3 +240,5 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
+

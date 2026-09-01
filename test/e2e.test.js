@@ -1,3 +1,18 @@
+
+test("served UI controls include stop and immediate download", async () => {
+  const app = await listen(createApp());
+
+  try {
+    const response = await fetch(`${app.url}/`);
+    assert.equal(response.status, 200);
+
+    const html = await response.text();
+    assert.match(html, /id="stop-button"/);
+    assert.match(html, /id="download-now-button"/);
+  } finally {
+    await close(app.server);
+  }
+});
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import test from "node:test";
@@ -96,3 +111,4 @@ test("API and scraper complete a ToC and chapter request through FlareSolverr", 
     await close(flare.server);
   }
 });
+
