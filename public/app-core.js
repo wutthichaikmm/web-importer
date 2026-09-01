@@ -18,6 +18,12 @@ function sleep(milliseconds, signal) {
   });
 }
 
+export function isActiveRequest(activeController, controller) {
+  return Boolean(
+    controller && activeController === controller && !controller.signal.aborted,
+  );
+}
+
 export async function runWithConcurrency(
   entries,
   concurrency,
@@ -80,5 +86,3 @@ export function formatExportFilename(date) {
     ".txt",
   ].join("");
 }
-
-

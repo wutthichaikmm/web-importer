@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildExportText,
   formatExportFilename,
+  isActiveRequest,
   runWithConcurrency,
 } from "../public/app-core.js";
 
@@ -75,3 +76,13 @@ test("runWithConcurrency stops queued work after abort", async () => {
   assert.deepEqual(started, [1]);
 });
 
+test("isActiveRequest rejects stale or aborted requests", () => {
+  const controller = new AbortController();
+
+  assert.equal(isActiveRequest(controller, controller), true);
+
+  controller.abort();
+  assert.equal(isActiveRequest(controller, controller), false);
+  assert.equal(isActiveRequest(null, controller), false);
+  assert.equal(isActiveRequest(null, null), false);
+});

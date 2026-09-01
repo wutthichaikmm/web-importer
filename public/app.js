@@ -1,6 +1,7 @@
 import {
   buildExportText,
   formatExportFilename,
+  isActiveRequest,
   runWithConcurrency,
 } from "./app-core.js";
 
@@ -18,7 +19,6 @@ const dom = {
   delayMs: document.querySelector("#delay-ms"),
   concurrency: document.querySelector("#concurrency"),
   startFetchButton: document.querySelector("#start-fetch-button"),
-  selectionStep: document.querySelector("#selection-step"),
   fetchStep: document.querySelector("#fetch-step"),
   fetchStateLabel: document.querySelector("#fetch-state-label"),
   progressLabel: document.querySelector("#progress-label"),
@@ -45,6 +45,7 @@ const state = {
   lastClickedIndex: null,
   isBusy: false,
   runController: null,
+  tocController: null,
 };
 
 function announce(message) {
@@ -273,7 +274,7 @@ async function fetchSelectedChapters() {
         }
 
         item.status = "fetching";
-        if (state.runController !== controller) return;
+        if (!isActiveRequest(state.runController, controller)) return;
         renderProgress();
 
         try {
@@ -299,7 +300,7 @@ async function fetchSelectedChapters() {
         }
 
         completed += 1;
-        if (state.runController !== controller) return;
+        if (!isActiveRequest(state.runController, controller)) return;
         updateProgress(completed, selected.length);
         renderProgress();
         updateExportButtons();
@@ -388,6 +389,9 @@ function resetApp() {
   if (state.runController) {
     state.runController.abort();
   }
+  if (state.tocController) {
+    state.tocController.abort();
+  }
 
   state.step = "input";
   state.tocUrl = "";
@@ -396,6 +400,8 @@ function resetApp() {
   state.lastClickedIndex = null;
   state.isBusy = false;
   state.runController = null;
+  state.tocController = null;
+  dom.fetchTocButton.disabled = false;
   dom.tocUrl.value = "";
   dom.startNumber.value = "1";
   dom.selectionStartNumber.value = "1";
@@ -423,14 +429,21 @@ dom.tocForm.addEventListener("submit", async (event) => {
   const url = dom.tocUrl.value.trim();
   if (!url) return;
 
+  const controller = new AbortController();
   state.isBusy = true;
+  state.tocController = controller;
   dom.fetchTocButton.disabled = true;
   setMessage("");
   setConnectionState("กำลังดึงสารบัญ...");
   announce("กำลังติดต่อ FlareSolverr");
 
   try {
-    const data = await postJson("/api/toc", { url });
+    const data = await postJson(
+      "/api/toc",
+      { url },
+      { signal: controller.signal },
+    );
+    if (!isActiveRequest(state.tocController, controller)) return;
     if (!Array.isArray(data.chapters) || data.chapters.length === 0) {
       throw new Error("ไม่พบรายการ chapter ในหน้านี้");
     }
@@ -456,13 +469,17 @@ dom.tocForm.addEventListener("submit", async (event) => {
     announce(`พบ ${state.chapters.length} chapter`);
     dom.selectionStep.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
+    if (!isActiveRequest(state.tocController, controller)) return;
     const message = error instanceof Error ? error.message : "ดึงสารบัญไม่สำเร็จ";
     setMessage(message);
     setConnectionState("เกิดข้อผิดพลาด");
     announce(message);
   } finally {
-    state.isBusy = false;
-    dom.fetchTocButton.disabled = false;
+    if (state.tocController === controller) {
+      state.tocController = null;
+      state.isBusy = false;
+      dom.fetchTocButton.disabled = false;
+    }
   }
 });
 
@@ -513,7 +530,3 @@ dom.resetButton.addEventListener("click", resetApp);
 
 renderChapterList();
 updateSelectionSummary();
-
-
-
-
