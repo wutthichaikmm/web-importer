@@ -1,0 +1,58 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  buildExportText,
+  formatExportFilename,
+  runWithConcurrency,
+} from "../public/app-core.js";
+
+test("buildExportText creates ordered chapter sections", () => {
+  assert.equal(
+    buildExportText([
+      {
+        chapterNumber: 1,
+        title: "第一章",
+        content: "เนื้อหาแรก",
+      },
+      {
+        chapterNumber: 2,
+        title: "第二章",
+        content: "เนื้อหาที่สอง",
+      },
+    ]),
+    "Chapter 1 — 第一章\n\nเนื้อหาแรก\n\n\nChapter 2 — 第二章\n\nเนื้อหาที่สอง",
+  );
+});
+
+test("formatExportFilename uses local date and time", () => {
+  assert.equal(
+    formatExportFilename(new Date(2026, 8, 1, 14, 5)),
+    "chapters-20260901-1405.txt",
+  );
+});
+
+test("runWithConcurrency never exceeds active worker count", async () => {
+  let active = 0;
+  let maxActive = 0;
+  const completed = [];
+
+  await runWithConcurrency(
+    [1, 2, 3, 4, 5],
+    2,
+    async (entry) => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      completed.push(entry);
+      active -= 1;
+    },
+    0,
+  );
+
+  assert.equal(maxActive, 2);
+  assert.deepEqual(
+    completed.sort((a, b) => a - b),
+    [1, 2, 3, 4, 5],
+  );
+});
