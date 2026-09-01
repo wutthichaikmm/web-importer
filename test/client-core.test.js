@@ -56,3 +56,22 @@ test("runWithConcurrency never exceeds active worker count", async () => {
     [1, 2, 3, 4, 5],
   );
 });
+
+test("runWithConcurrency stops queued work after abort", async () => {
+  const controller = new AbortController();
+  const started = [];
+
+  await runWithConcurrency(
+    [1, 2, 3],
+    1,
+    async (entry) => {
+      started.push(entry);
+      controller.abort();
+    },
+    0,
+    { signal: controller.signal },
+  );
+
+  assert.deepEqual(started, [1]);
+});
+
