@@ -1,1 +1,236 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="เครื่องมือ local สำหรับดึง chapter ผ่าน FlareSolverr และ export เป็นไฟล์ข้อความ"
+    />
+    <title>Web Importer — ดึงบทจากเว็บเป็นไฟล์ข้อความ</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-glow page-glow-one" aria-hidden="true"></div>
+    <div class="page-glow page-glow-two" aria-hidden="true"></div>
 
+    <div class="app-frame">
+      <header class="site-header">
+        <a class="brand" href="/" aria-label="Web Importer หน้าหลัก">
+          <span class="brand-mark" aria-hidden="true">↘</span>
+          <span>
+            <span class="brand-kicker">WEB IMPORTER</span>
+            <span class="brand-name">Chapter Desk</span>
+          </span>
+        </a>
+        <div class="connection-state" id="toc-status" role="status" aria-live="polite">
+          <span class="connection-dot" aria-hidden="true"></span>
+          <span>FlareSolverr: รอการเชื่อมต่อ</span>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <section class="hero" aria-labelledby="page-title">
+          <div class="hero-copy">
+            <p class="eyebrow"><span>LOCAL TOOL / 01</span><span class="eyebrow-rule"></span><span>TEXT EXTRACTION</span></p>
+            <h1 id="page-title">ดึงบทจากเว็บ<br /><em>เป็นไฟล์ข้อความ</em></h1>
+            <p class="hero-description">
+              ดึงสารบัญ เลือกตอน และเก็บเนื้อหาไว้เป็นไฟล์เดียวผ่าน FlareSolverr
+              ที่ทำงานอยู่ในเครื่องของคุณ
+            </p>
+          </div>
+          <div class="hero-note" aria-label="คำอธิบายเครื่องมือ">
+            <span class="note-index">01</span>
+            <span class="note-line"></span>
+            <p>สารบัญ<br />→ ตอน<br />→ TXT</p>
+          </div>
+        </section>
+
+        <div class="workspace-grid">
+          <section class="panel input-panel" aria-labelledby="source-heading">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-label">STEP 01</p>
+                <h2 id="source-heading">ระบุหน้าสารบัญ</h2>
+              </div>
+              <span class="step-badge">INPUT</span>
+            </div>
+
+            <form id="toc-form" class="toc-form">
+              <label class="field-label" for="toc-url">URL หน้าสารบัญ</label>
+              <div class="url-input-wrap">
+                <span class="input-prefix" aria-hidden="true">https://</span>
+                <input
+                  id="toc-url"
+                  name="toc-url"
+                  type="url"
+                  inputmode="url"
+                  autocomplete="url"
+                  placeholder="example.com/book/123"
+                  required
+                />
+              </div>
+              <button class="primary-button" id="fetch-toc-button" type="submit">
+                <span>ดึงสารบัญ</span>
+                <span class="button-arrow" aria-hidden="true">↗</span>
+              </button>
+
+              <div class="field-grid">
+                <div class="field-group">
+                  <label class="field-label" for="start-number">เริ่มที่ Chapter #</label>
+                  <input id="start-number" type="number" min="1" value="1" />
+                </div>
+                <div class="field-group field-meta">
+                  <span class="field-label">วิธีทำงาน</span>
+                  <span class="field-value">FlareSolverr / request.get</span>
+                </div>
+              </div>
+            </form>
+
+            <div class="panel-footnote">
+              <span class="footnote-icon" aria-hidden="true">✦</span>
+              <p>ใช้ URL หน้าสารบัญโดยตรง ระบบจะค้นหารายการตอนให้อัตโนมัติ</p>
+            </div>
+          </section>
+
+          <aside class="panel side-panel" aria-labelledby="how-heading">
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="panel-label">QUICK GUIDE</p>
+                <h2 id="how-heading">สามจังหวะ</h2>
+              </div>
+              <span class="orbit-mark" aria-hidden="true">◌</span>
+            </div>
+            <ol class="guide-list">
+              <li>
+                <span class="guide-number">01</span>
+                <span><strong>ดึงสารบัญ</strong><small>ส่ง URL ให้ FlareSolverr</small></span>
+              </li>
+              <li>
+                <span class="guide-number">02</span>
+                <span><strong>เลือกตอน</strong><small>กำหนดช่วงและลำดับ</small></span>
+              </li>
+              <li>
+                <span class="guide-number">03</span>
+                <span><strong>เก็บเป็น TXT</strong><small>ดาวน์โหลดเนื้อหาที่สำเร็จ</small></span>
+              </li>
+            </ol>
+            <div class="side-status-card">
+              <span class="mini-label">LOCAL CONNECTION</span>
+              <span class="local-endpoint">127.0.0.1:8191</span>
+            </div>
+          </aside>
+        </div>
+
+        <p class="status-message" id="input-message" role="alert"></p>
+
+        <section class="panel step-panel" id="selection-step" aria-labelledby="selection-heading" hidden>
+          <div class="panel-heading selection-heading">
+            <div>
+              <p class="panel-label">STEP 02</p>
+              <h2 id="selection-heading">เลือกตอนที่จะดึง</h2>
+            </div>
+            <div class="selection-count"><span id="selected-count">0</span><span>/ ทั้งหมด</span></div>
+          </div>
+
+          <div class="control-strip">
+            <div class="control-cluster">
+              <label class="inline-label" for="selection-start-number">เริ่มที่ #</label>
+              <input id="selection-start-number" class="small-input" type="number" min="1" value="1" />
+            </div>
+            <div class="control-cluster">
+              <label class="inline-label" for="delay-ms">หน่วง (ms)</label>
+              <input id="delay-ms" class="small-input" type="number" min="0" value="100" />
+            </div>
+            <div class="control-cluster">
+              <label class="inline-label" for="concurrency">พร้อมกัน</label>
+              <input id="concurrency" class="small-input" type="number" min="1" max="12" value="4" />
+            </div>
+            <div class="control-divider" aria-hidden="true"></div>
+            <button class="text-button" id="select-all-button" type="button">เลือกทั้งหมด</button>
+            <button class="icon-button" id="reverse-order-button" type="button" title="สลับลำดับตอน">
+              <span aria-hidden="true">⇅</span><span class="sr-only">สลับลำดับตอน</span>
+            </button>
+          </div>
+
+          <div class="shortcut-row" aria-label="เลือกจำนวนตอน">
+            <span class="shortcut-label">เลือกเร็ว</span>
+            <div class="shortcut-list">
+              <button type="button" data-select-count="1">1 ตอน</button>
+              <button type="button" data-select-count="5">5 ตอน</button>
+              <button type="button" data-select-count="10">10 ตอน</button>
+              <button type="button" data-select-count="15">15 ตอน</button>
+              <button type="button" data-select-count="20">20 ตอน</button>
+              <button type="button" data-select-count="50">50 ตอน</button>
+              <button type="button" data-select-count="100">100 ตอน</button>
+            </div>
+          </div>
+
+          <div class="chapter-list-header">
+            <span>ลำดับ</span><span>ชื่อ chapter / source URL</span><span>สถานะ</span>
+          </div>
+          <div class="chapter-list" id="chapter-list" role="list" aria-label="รายการ chapter"></div>
+
+          <div class="step-actions">
+            <span class="selection-hint">คลิกแถวเพื่อเลือก · Shift + คลิกเพื่อเลือกช่วง</span>
+            <button class="primary-button" id="start-fetch-button" type="button" disabled>
+              <span>เริ่มดึงเนื้อหา</span><span class="button-arrow" aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel step-panel fetch-panel" id="fetch-step" aria-labelledby="fetch-heading" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="panel-label">STEP 03</p>
+              <h2 id="fetch-heading">กำลังประกอบไฟล์</h2>
+            </div>
+            <span class="step-badge" id="fetch-state-label">FETCHING</span>
+          </div>
+
+          <div class="progress-overview">
+            <div class="progress-copy">
+              <span class="progress-label" id="progress-label">0 / 0 chapter</span>
+              <span class="progress-subtitle">ผ่าน FlareSolverr ทีละรายการตามลำดับที่เลือก</span>
+            </div>
+            <span class="progress-percent" id="progress-percent">0%</span>
+          </div>
+          <div
+            class="progress-track"
+            id="progress-bar"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-label="ความคืบหน้าการดึง chapter"
+          >
+            <span class="progress-fill"></span>
+          </div>
+
+          <div class="progress-list" id="progress-list" role="list" aria-label="สถานะการดึง chapter"></div>
+
+          <div class="step-actions fetch-actions">
+            <span class="selection-hint" id="fetch-summary">รอผลการดึงเนื้อหา</span>
+            <div class="action-group">
+              <button class="secondary-button" id="reset-button" type="button">เริ่มใหม่</button>
+              <button class="primary-button" id="export-button" type="button" disabled>
+                <span>ดาวน์โหลดไฟล์ .txt</span><span class="button-arrow" aria-hidden="true">↓</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <p class="status-message" id="input-message-bottom" role="alert"></p>
+        <p class="sr-only" id="live-region" aria-live="polite" aria-atomic="true"></p>
+      </main>
+
+      <footer class="site-footer">
+        <span>LOCAL / 127.0.0.1</span>
+        <span>UTF-8 TEXT EXPORT</span>
+        <span>NO DATABASE REQUIRED</span>
+      </footer>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
