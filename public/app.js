@@ -18,6 +18,7 @@ const dom = {
   delayMs: document.querySelector("#delay-ms"),
   concurrency: document.querySelector("#concurrency"),
   startFetchButton: document.querySelector("#start-fetch-button"),
+  selectionStep: document.querySelector("#selection-step"),
   fetchStep: document.querySelector("#fetch-step"),
   fetchStateLabel: document.querySelector("#fetch-state-label"),
   progressLabel: document.querySelector("#progress-label"),
@@ -26,6 +27,8 @@ const dom = {
   progressPercent: document.querySelector("#progress-percent"),
   progressList: document.querySelector("#progress-list"),
   fetchSummary: document.querySelector("#fetch-summary"),
+  stopButton: document.querySelector("#stop-button"),
+  downloadNowButton: document.querySelector("#download-now-button"),
   exportButton: document.querySelector("#export-button"),
   resetButton: document.querySelector("#reset-button"),
   connectionState: document.querySelector("#toc-status"),
@@ -41,6 +44,7 @@ const state = {
   fetchingItems: [],
   lastClickedIndex: null,
   isBusy: false,
+  runController: null,
 };
 
 function announce(message) {
@@ -61,11 +65,12 @@ function setConnectionState(message, connected = false) {
   dom.connectionState.classList.toggle("is-connected", connected);
 }
 
-async function postJson(path, payload) {
+async function postJson(path, payload, { signal } = {}) {
   const response = await fetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
+    signal,
   });
 
   let data;
@@ -90,6 +95,16 @@ function numberValue(input, fallback, minimum, maximum = Number.POSITIVE_INFINIT
 
 function selectedChapterCount() {
   return state.chapters.filter((chapter) => chapter.selected).length;
+}
+
+function successfulItems() {
+  return state.fetchingItems.filter((item) => item.status === "done");
+}
+
+function updateExportButtons() {
+  const hasSuccessfulItems = successfulItems().length > 0;
+  dom.downloadNowButton.disabled = !hasSuccessfulItems;
+  dom.exportButton.disabled = !hasSuccessfulItems;
 }
 
 function updateSelectionSummary() {
@@ -201,10 +216,12 @@ function renderProgress() {
       queued: "รอคิว",
       fetching: "กำลังดึง",
       done: "สำเร็จ",
+      stopped: "หยุดแล้ว",
       error: item.error || "ล้มเหลว",
     }[item.status];
     status.textContent = statusText;
     if (item.status === "done") status.classList.add("is-done");
+    if (item.status === "stopped") status.classList.add("is-stopped");
     if (item.status === "error") status.classList.add("is-error");
 
     row.append(number, title, status);
@@ -221,70 +238,134 @@ function updateProgress(done, total) {
 }
 
 async function fetchSelectedChapters() {
+  if (state.isBusy) return;
+
   const selected = state.chapters
     .filter((chapter) => chapter.selected)
     .map((chapter) => ({ ...chapter, status: "queued", content: "" }));
   if (selected.length === 0) return;
 
+  const controller = new AbortController();
   state.isBusy = true;
+  state.runController = controller;
   state.step = "fetching";
   state.fetchingItems = selected;
   dom.selectionStep.hidden = true;
   dom.fetchStep.hidden = false;
-  dom.exportButton.disabled = true;
+  dom.stopButton.disabled = false;
+  updateExportButtons();
   dom.fetchStateLabel.textContent = "FETCHING";
   dom.fetchSummary.textContent = "กำลังติดต่อ FlareSolverr";
   updateProgress(0, selected.length);
   renderProgress();
   announce(`เริ่มดึง ${selected.length} chapter`);
 
-  let done = 0;
+  let completed = 0;
+  let currentBatch = false;
   try {
     await runWithConcurrency(
       selected,
       numberValue(dom.concurrency, 4, 1, 12),
       async (item) => {
+        if (controller.signal.aborted) {
+          item.status = "stopped";
+          return;
+        }
+
         item.status = "fetching";
+        if (state.runController !== controller) return;
         renderProgress();
 
         try {
-          const result = await postJson("/api/chapter", { url: item.url });
-          item.status = "done";
-          item.content = result.content;
+          const result = await postJson(
+            "/api/chapter",
+            { url: item.url },
+            { signal: controller.signal },
+          );
+          if (controller.signal.aborted) {
+            item.status = "stopped";
+          } else {
+            item.status = "done";
+            item.content = result.content;
+          }
         } catch (error) {
-          item.status = "error";
-          item.error = error instanceof Error ? error.message : "ดึงไม่สำเร็จ";
+          if (controller.signal.aborted || error?.name === "AbortError") {
+            item.status = "stopped";
+          } else {
+            item.status = "error";
+            item.error =
+              error instanceof Error ? error.message : "ดึงไม่สำเร็จ";
+          }
         }
 
-        done += 1;
-        updateProgress(done, selected.length);
+        completed += 1;
+        if (state.runController !== controller) return;
+        updateProgress(completed, selected.length);
         renderProgress();
+        updateExportButtons();
       },
       numberValue(dom.delayMs, 100, 0),
+      { signal: controller.signal },
     );
   } finally {
-    state.isBusy = false;
+    currentBatch = state.runController === controller;
+    if (currentBatch) {
+      state.isBusy = false;
+      state.runController = null;
+      dom.stopButton.disabled = true;
+    }
   }
 
-  const successful = state.fetchingItems.filter((item) => item.status === "done");
-  const failed = state.fetchingItems.length - successful.length;
-  state.step = "done";
-  dom.fetchStateLabel.textContent = "DONE";
+  if (!currentBatch) return;
+
+  if (controller.signal.aborted) {
+    selected.forEach((item) => {
+      if (item.status === "queued" || item.status === "fetching") {
+        item.status = "stopped";
+      }
+    });
+  }
+
+  const completedItems = selected.filter(
+    (item) => item.status !== "queued" && item.status !== "fetching",
+  ).length;
+  updateProgress(completedItems, selected.length);
+  renderProgress();
+
+  const successful = successfulItems();
+  const failed = selected.filter((item) => item.status === "error").length;
+  const stopped = selected.filter((item) => item.status === "stopped").length;
+  state.step = stopped > 0 ? "stopped" : "done";
+  dom.fetchStateLabel.textContent = stopped > 0 ? "STOPPED" : "DONE";
   dom.fetchSummary.textContent =
-    failed > 0
-      ? `สำเร็จ ${successful.length} / ${selected.length} · ล้มเหลว ${failed}`
-      : `สำเร็จครบ ${successful.length} chapter`;
-  dom.exportButton.disabled = successful.length === 0;
+    stopped > 0
+      ? `หยุดแล้ว · สำเร็จ ${successful.length} / ${selected.length} chapter`
+      : failed > 0
+        ? `สำเร็จ ${successful.length} / ${selected.length} · ล้มเหลว ${failed}`
+        : `สำเร็จครบ ${successful.length} chapter`;
+  updateExportButtons();
   setConnectionState("เชื่อมต่อแล้ว", true);
   announce(
-    failed > 0
-      ? `ดึงเสร็จแล้ว สำเร็จ ${successful.length} ตอน ล้มเหลว ${failed} ตอน`
-      : `ดึงเสร็จแล้ว ${successful.length} ตอน`,
+    stopped > 0
+      ? `หยุดแล้ว เก็บผลสำเร็จ ${successful.length} ตอน`
+      : failed > 0
+        ? `ดึงเสร็จแล้ว สำเร็จ ${successful.length} ตอน ล้มเหลว ${failed} ตอน`
+        : `ดึงเสร็จแล้ว ${successful.length} ตอน`,
   );
 }
 
+function stopFetching() {
+  if (!state.isBusy || !state.runController) return;
+
+  state.runController.abort();
+  dom.stopButton.disabled = true;
+  dom.fetchStateLabel.textContent = "STOPPED";
+  dom.fetchSummary.textContent = "กำลังหยุดและเก็บผลที่สำเร็จ";
+  announce("หยุดการดึงแล้ว กำลังเก็บผลที่สำเร็จไว้");
+}
+
 function downloadExport() {
-  const successful = state.fetchingItems.filter((item) => item.status === "done");
+  const successful = successfulItems().slice();
   if (successful.length === 0) {
     announce("ไม่มี chapter ที่สำเร็จให้ดาวน์โหลด");
     return;
@@ -304,12 +385,17 @@ function downloadExport() {
 }
 
 function resetApp() {
+  if (state.runController) {
+    state.runController.abort();
+  }
+
   state.step = "input";
   state.tocUrl = "";
   state.chapters = [];
   state.fetchingItems = [];
   state.lastClickedIndex = null;
   state.isBusy = false;
+  state.runController = null;
   dom.tocUrl.value = "";
   dom.startNumber.value = "1";
   dom.selectionStartNumber.value = "1";
@@ -317,6 +403,8 @@ function resetApp() {
   dom.concurrency.value = "4";
   dom.selectionStep.hidden = true;
   dom.fetchStep.hidden = true;
+  dom.stopButton.disabled = true;
+  dom.downloadNowButton.disabled = true;
   dom.exportButton.disabled = true;
   dom.fetchStateLabel.textContent = "FETCHING";
   setMessage("");
@@ -418,10 +506,14 @@ document.querySelectorAll("[data-select-count]").forEach((button) => {
 });
 
 dom.startFetchButton.addEventListener("click", fetchSelectedChapters);
+dom.stopButton.addEventListener("click", stopFetching);
+dom.downloadNowButton.addEventListener("click", downloadExport);
 dom.exportButton.addEventListener("click", downloadExport);
 dom.resetButton.addEventListener("click", resetApp);
 
 renderChapterList();
 updateSelectionSummary();
+
+
 
 
