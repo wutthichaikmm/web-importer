@@ -10,6 +10,9 @@ import {
   runWithConcurrency,
   selectChapterRange,
 } from "./app-core.js";
+import { copyText } from "./clipboard.js";
+
+const COPIED_LABEL_MS = 2000;
 
 const STATUS_TEXT = {
   idle: "",
@@ -32,6 +35,7 @@ const state = {
   lastClickedIdx: null,
   shiftHeld: false,
   stopHadFocus: false,
+  copiedUntil: 0,
   rows: new Map(),
   renderedLocked: null,
 };
@@ -186,6 +190,11 @@ function renderControls() {
   dom.retryButton.textContent = `ลองดึงตอนที่ไม่สำเร็จ (${controls.retry.count})`;
   dom.exportButton.disabled = controls.download.disabled;
   dom.exportButton.textContent = `ดาวน์โหลด .txt (${controls.download.count} ตอน)`;
+  dom.copyButton.disabled = controls.download.disabled;
+  dom.copyButton.textContent =
+    Date.now() < state.copiedUntil
+      ? "คัดลอกแล้ว ✓"
+      : `คัดลอกข้อความ (${controls.download.count} ตอน)`;
 
   dom.fetchTocButton.disabled = controls.locked;
   [dom.delayMs, dom.concurrency].forEach((input) => {
@@ -504,6 +513,28 @@ function stopFetch() {
 
 // Export and reset
 
+async function copyExport() {
+  const chapters = exportableChapters(state.chapters);
+  if (chapters.length === 0) {
+    announce("ไม่มีตอนที่สำเร็จให้คัดลอก");
+    return;
+  }
+
+  try {
+    await copyText(buildExportText(chapters));
+  } catch {
+    setMessage("คัดลอกไม่สำเร็จ ลองกดดาวน์โหลด .txt แทน");
+    announce("คัดลอกไม่สำเร็จ");
+    return;
+  }
+
+  setMessage("");
+  state.copiedUntil = Date.now() + COPIED_LABEL_MS;
+  renderControls();
+  window.setTimeout(renderControls, COPIED_LABEL_MS);
+  announce(`คัดลอก ${chapters.length} ตอนแล้ว`);
+}
+
 function downloadExport() {
   const chapters = exportableChapters(state.chapters);
   if (chapters.length === 0) {
@@ -540,6 +571,7 @@ function resetImporter() {
     runController: null,
     lastClickedIdx: null,
     stopHadFocus: false,
+    copiedUntil: 0,
   });
   dom.rangeFrom.value = "";
   dom.rangeTo.value = "";
@@ -587,6 +619,7 @@ export function initImporter() {
     stopButton: $("#stop-button"),
     retryButton: $("#retry-button"),
     exportButton: $("#export-button"),
+    copyButton: $("#copy-button"),
     resetButton: $("#reset-button"),
     liveRegion: $("#live-region"),
   });
@@ -603,6 +636,7 @@ export function initImporter() {
   dom.stopButton.addEventListener("click", stopFetch);
   dom.retryButton.addEventListener("click", retryFailed);
   dom.exportButton.addEventListener("click", downloadExport);
+  dom.copyButton.addEventListener("click", copyExport);
   dom.resetButton.addEventListener("click", resetImporter);
   window.addEventListener("beforeunload", (event) => {
     if (importerControls(state).leaveWarning) event.preventDefault();

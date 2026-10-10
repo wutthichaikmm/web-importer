@@ -4,8 +4,13 @@ import {
   formatNovelText,
   formatPostProcessFilename,
 } from "./app-core.js";
+import { copyText } from "./clipboard.js";
+
+const COPY_LABEL = "คัดลอกผลลัพธ์";
+const COPIED_LABEL_MS = 2000;
 
 const dom = {};
+let copiedLabelTimer;
 
 const state = {
   file: null,
@@ -31,6 +36,7 @@ function clearResult() {
   state.processedText = "";
   state.outputFilename = "";
   dom.downloadButton.disabled = true;
+  dom.copyButton.disabled = true;
   dom.preview.textContent = "ยังไม่มีผลลัพธ์";
 }
 
@@ -115,6 +121,7 @@ function processFile() {
     dom.preview.textContent =
       extractedText.length > 1200 ? `${extractedText.slice(0, 1200)}\n…` : extractedText;
     dom.downloadButton.disabled = false;
+    dom.copyButton.disabled = false;
     setStatus(`จัดรูปแบบแล้ว · ตอน ${start}-${end} · ${state.encoding}`);
     announce(`จัดรูปแบบและตัดตอน ${start}-${end} แล้ว`);
   } catch (error) {
@@ -130,6 +137,28 @@ function handleRangeInput() {
 
   clearResult();
   setStatus("เปลี่ยนช่วงแล้ว · กดจัดรูปแบบและตัดช่วงอีกครั้ง");
+}
+
+async function copyResult() {
+  if (!state.processedText) {
+    announce("ยังไม่มีผลลัพธ์ให้คัดลอก");
+    return;
+  }
+
+  try {
+    await copyText(state.processedText);
+  } catch {
+    setStatus("คัดลอกไม่สำเร็จ ลองกดดาวน์โหลดผลลัพธ์แทน", true);
+    announce("คัดลอกไม่สำเร็จ");
+    return;
+  }
+
+  dom.copyButton.textContent = "คัดลอกแล้ว ✓";
+  window.clearTimeout(copiedLabelTimer);
+  copiedLabelTimer = window.setTimeout(() => {
+    dom.copyButton.textContent = COPY_LABEL;
+  }, COPIED_LABEL_MS);
+  announce("คัดลอกผลลัพธ์แล้ว");
 }
 
 function downloadResult() {
@@ -158,6 +187,7 @@ export function initFileTools() {
     end: document.querySelector("#file-tools-end"),
     formatButton: document.querySelector("#format-file-button"),
     downloadButton: document.querySelector("#download-formatted-button"),
+    copyButton: document.querySelector("#copy-formatted-button"),
     status: document.querySelector("#file-tools-status"),
     preview: document.querySelector("#file-tools-preview"),
     liveRegion: document.querySelector("#live-region"),
@@ -169,4 +199,5 @@ export function initFileTools() {
   dom.end.addEventListener("input", handleRangeInput);
   dom.formatButton.addEventListener("click", processFile);
   dom.downloadButton.addEventListener("click", downloadResult);
+  dom.copyButton.addEventListener("click", copyResult);
 }

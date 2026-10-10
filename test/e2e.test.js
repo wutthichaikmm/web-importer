@@ -55,6 +55,7 @@ test("served UI exposes the tabbed importer workspace", async () => {
       "stop-button",
       "retry-button",
       "export-button",
+      "copy-button",
       "reset-button",
       "chapter-list",
       "progress-section",
@@ -86,6 +87,7 @@ test("served UI includes local TXT formatting and range controls", async () => {
     assert.match(html, /value="400"/);
     assert.match(html, /id="format-file-button"/);
     assert.match(html, /id="download-formatted-button"/);
+    assert.match(html, /id="copy-formatted-button"/);
     assert.match(html, /id="file-tools-preview"/);
   } finally {
     await close(app.server);
