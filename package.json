@@ -1,6 +1,25 @@
 {
   "name": "web-importer",
   "version": "1.0.0",
+  "description": "Local tool that fetches novel chapters through FlareSolverr and exports them as a single UTF-8 text file",
+  "license": "MIT",
+  "author": "Wutthichai Kummala",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wutthichaikmm/web-importer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wutthichaikmm/web-importer/issues"
+  },
+  "homepage": "https://github.com/wutthichaikmm/web-importer#readme",
+  "keywords": [
+    "flaresolverr",
+    "scraper",
+    "novel",
+    "chapters",
+    "text-export",
+    "cloudflare"
+  ],
   "private": true,
   "type": "module",
   "engines": {
@@ -9,10 +28,15 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "build:installer": "node packaging/build.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",
     "node-html-parser": "^7.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
   }
 }
