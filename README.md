@@ -33,9 +33,9 @@
 
 ได้ `WebImporter-Setup.exe` ไฟล์เดียว (ราว 290 MB) ที่รวม Web Importer กับ FlareSolverr (และ Chrome ของมัน) ติดตั้งเฉพาะผู้ใช้ปัจจุบัน ไม่ต้องใช้สิทธิ์ admin และเลือกสร้าง shortcut บน Desktop ได้
 
-> ตอนนี้ยังไม่มีไฟล์ติดตั้งสำเร็จรูปให้ดาวน์โหลด ให้สร้างเองตามขั้นตอนข้างล่าง (ราว 6 นาที)
+**ดาวน์โหลด:** [`WebImporter-Setup.exe` จากหน้า Releases](https://github.com/wutthichaikmm/web-importer/releases/latest) (ไฟล์ไม่ได้เซ็นชื่อดิจิทัล หากไม่มั่นใจ ตรวจ SHA-256 ที่ระบุไว้ในหน้า Release หรือสร้างเองจากซอร์ส)
 
-**สร้างตัวติดตั้ง** ต้องใช้ Windows 10/11 (64 บิต), [Node.js](https://nodejs.org/) 20.12 ขึ้นไป (แนะนำ 24), [Git](https://git-scm.com/) และ [Inno Setup](https://jrsoftware.org/isinfo.php) 6 หรือ 7
+**หรือสร้างตัวติดตั้งเอง** ต้องใช้ Windows 10/11 (64 บิต), [Node.js](https://nodejs.org/) 20.12 ขึ้นไป (แนะนำ 24), [Git](https://git-scm.com/) และ [Inno Setup](https://jrsoftware.org/isinfo.php) 6 หรือ 7
 
 ```powershell
 git clone https://github.com/wutthichaikmm/web-importer.git
