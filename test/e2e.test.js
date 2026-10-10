@@ -1,18 +1,3 @@
-
-test("served UI controls include stop and immediate download", async () => {
-  const app = await listen(createApp());
-
-  try {
-    const response = await fetch(`${app.url}/`);
-    assert.equal(response.status, 200);
-
-    const html = await response.text();
-    assert.match(html, /id="stop-button"/);
-    assert.match(html, /id="download-now-button"/);
-  } finally {
-    await close(app.server);
-  }
-});
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import test from "node:test";
@@ -49,6 +34,63 @@ function readRequestBody(request) {
     request.on("error", reject);
   });
 }
+
+test("served UI exposes the tabbed importer workspace", async () => {
+  const app = await listen(createApp());
+
+  try {
+    const response = await fetch(`${app.url}/`);
+    assert.equal(response.status, 200);
+
+    const html = await response.text();
+    for (const id of [
+      "tab-importer",
+      "tab-file-tools",
+      "panel-importer",
+      "toc-url",
+      "range-from",
+      "range-to",
+      "select-range-button",
+      "start-fetch-button",
+      "stop-button",
+      "retry-button",
+      "export-button",
+      "reset-button",
+      "chapter-list",
+      "progress-section",
+    ]) {
+      assert.match(html, new RegExp(`id="${id}"`));
+    }
+    assert.doesNotMatch(html, /download-now-button|file-tools\.css|data-select-count/);
+  } finally {
+    await close(app.server);
+  }
+});
+
+test("served UI includes local TXT formatting and range controls", async () => {
+  const app = await listen(createApp());
+
+  try {
+    const response = await fetch(`${app.url}/`);
+    assert.equal(response.status, 200);
+
+    const html = await response.text();
+    assert.match(html, /id="file-tools-panel"/);
+    assert.match(html, /id="source-text-file"/);
+    assert.match(html, /accept="\.txt,text\/plain"/);
+    assert.match(html, /id="file-tools-encoding"/);
+    assert.match(html, /value="Big5"/);
+    assert.match(html, /id="file-tools-start"/);
+    assert.match(html, /id="file-tools-end"/);
+    assert.match(html, /value="205"/);
+    assert.match(html, /value="400"/);
+    assert.match(html, /id="format-file-button"/);
+    assert.match(html, /id="download-formatted-button"/);
+    assert.match(html, /id="file-tools-preview"/);
+  } finally {
+    await close(app.server);
+  }
+});
 
 test("API and scraper complete a ToC and chapter request through FlareSolverr", async () => {
   const flareCalls = [];
@@ -111,4 +153,3 @@ test("API and scraper complete a ToC and chapter request through FlareSolverr", 
     await close(flare.server);
   }
 });
-

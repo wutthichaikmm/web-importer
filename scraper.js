@@ -31,6 +31,7 @@ const TOC_SELECTORS = [
   "table tbody tr td a",
   ".chapters_frame div .chapter_cell a",
   ".page-content-listing li a",
+  "#content p .mm-content",
 ];
 
 const CONTENT_SELECTORS = [
@@ -216,7 +217,8 @@ function cleanLines(lines, headingText = "") {
   if (
     filtered.length > 0 &&
     headingText &&
-    normalizeComparableText(filtered[0]) === normalizeComparableText(headingText)
+    normalizeComparableText(filtered[0]) ===
+      normalizeComparableText(headingText)
   ) {
     filtered.shift();
   }
@@ -227,8 +229,10 @@ function cleanLines(lines, headingText = "") {
 function prepareContentElement(element) {
   const contentRoot = element.clone();
   const headingText =
-    element.querySelector("h1, h2, h3")?.text.replaceAll("\u00a0", " ").trim() ??
-    "";
+    element
+      .querySelector("h1, h2, h3")
+      ?.text.replaceAll("\u00a0", " ")
+      .trim() ?? "";
 
   contentRoot
     .querySelectorAll(CONTENT_NOISE_SELECTORS)
@@ -272,9 +276,10 @@ function extractTextFromElement(element) {
   const brLines = cleanLines(extractBrSeparatedText(contentRoot), headingText);
   if (brLines.length > 0) return brLines.join("\n\n");
 
-  return cleanLines(contentRoot.structuredText.split(/\r?\n/), headingText).join(
-    "\n\n",
-  );
+  return cleanLines(
+    contentRoot.structuredText.split(/\r?\n/),
+    headingText,
+  ).join("\n\n");
 }
 
 export function extractChapterText(html) {
@@ -320,9 +325,7 @@ export async function scrapeTableOfContents(url, options = {}) {
     return {
       chapters: [],
       error:
-        error instanceof Error
-          ? error.message
-          : "เกิดข้อผิดพลาดในการดึงสารบัญ",
+        error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการดึงสารบัญ",
     };
   }
 }
@@ -338,7 +341,9 @@ export async function scrapeChapterContent(url, options = {}) {
     return {
       content: "",
       error:
-        error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการดึงเนื้อหา",
+        error instanceof Error
+          ? error.message
+          : "เกิดข้อผิดพลาดในการดึงเนื้อหา",
     };
   }
 }
