@@ -27,7 +27,13 @@
 
 ## ติดตั้ง
 
-เลือกวิธีใดวิธีหนึ่ง ทุกวิธีต้องมี FlareSolverr (วิธีที่ 1 แนบมาให้แล้ว)
+เลือกวิธีใดวิธีหนึ่ง ทุกวิธีต้องมี FlareSolverr (วิธีที่ 1 แนบมาให้แล้ว และวิธีที่ 2 แบบรวมเปิดให้ในคำสั่งเดียว)
+
+| ระบบของคุณ | แนะนำ |
+|---|---|
+| Windows | วิธีที่ 1 (ตัวติดตั้ง) |
+| macOS | [ผู้ใช้ macOS](#ผู้ใช้-macos) (วิธีที่ 2 ด้วย Docker) |
+| Linux | วิธีที่ 2 (Docker) หรือวิธีที่ 3 (Node.js) |
 
 ### วิธีที่ 1: ตัวติดตั้ง Windows (ง่ายที่สุด ไม่ต้องติดตั้งอะไรเพิ่ม)
 
@@ -57,19 +63,27 @@ npm run build:installer
 
 ### วิธีที่ 2: Docker
 
-ต้องมี [Docker](https://www.docker.com/) และ FlareSolverr ที่ทำงานอยู่บนเครื่องที่พอร์ต `8191`
+ต้องมี [Docker](https://www.docker.com/) (ใช้ได้บน Windows, macOS และ Linux)
+
+**แบบรวม (แนะนำ)** คำสั่งเดียวเปิดทั้ง Web Importer และ FlareSolverr ให้:
 
 ```bash
-# 1) เปิด FlareSolverr (ข้ามได้ถ้ามีอยู่แล้ว)
-docker run -d --name flaresolverr -p 8191:8191 ghcr.io/flaresolverr/flaresolverr:latest
-
-# 2) ดึงโค้ดและเปิด Web Importer
 git clone https://github.com/wutthichaikmm/web-importer.git
 cd web-importer
-docker compose up -d --build
+docker compose -f compose.all-in-one.yaml up -d --build
 ```
 
-เปิด <http://127.0.0.1:8787> container เชื่อม FlareSolverr ผ่าน `http://host.docker.internal:8191` และเปิดพอร์ตเว็บเฉพาะ localhost ดู log ด้วย `docker compose logs -f` หยุดด้วย `docker compose down` และถ้าแก้โค้ดให้รัน `docker compose up -d --build` ใหม่
+เปิด <http://127.0.0.1:8787> (ถ้าพอร์ตนี้ถูกใช้อยู่ ให้ตั้งตัวแปร `WEB_IMPORTER_PORT` เป็นพอร์ตอื่น เช่น `WEB_IMPORTER_PORT=8890 docker compose -f compose.all-in-one.yaml up -d --build`) FlareSolverr ใช้ภายใน network ของ Docker ไม่เปิดพอร์ตออกมา จึงไม่ชนกับ FlareSolverr ที่คุณอาจเปิดไว้ที่ `8191`
+
+- ดู log: `docker compose -f compose.all-in-one.yaml logs -f`
+- หยุด: `docker compose -f compose.all-in-one.yaml down`
+- อัปเดตโค้ด: `git pull` แล้วรันคำสั่ง `up -d --build` ซ้ำ
+
+**แบบใช้ FlareSolverr ที่มีอยู่แล้ว** ถ้าคุณมี FlareSolverr ทำงานที่พอร์ต `8191` อยู่แล้ว (หรือจะเปิดเองด้วย `docker run -d --name flaresolverr -p 8191:8191 ghcr.io/flaresolverr/flaresolverr:latest`) ให้ใช้ `compose.yaml` ซึ่งเชื่อมผ่าน `http://host.docker.internal:8191`:
+
+```bash
+docker compose up -d --build
+```
 
 ### วิธีที่ 3: Node.js
 
@@ -83,6 +97,40 @@ npm start
 ```
 
 เปิด <http://127.0.0.1:8787>
+
+### ผู้ใช้ macOS
+
+FlareSolverr ไม่มีตัวสำเร็จรูปสำหรับ Mac (ทางโปรเจกต์ของเขาให้ไฟล์เฉพาะ Windows และ Linux) ทางที่ง่ายและน่าเชื่อถือที่สุดคือรันผ่าน Docker ซึ่งอิมเมจของทั้ง FlareSolverr และ Web Importer รองรับทั้ง Mac ชิป Apple Silicon (M1–M4) และ Intel ไม่ต้องติดตั้ง Python, Chrome หรือ XQuartz
+
+1. ติดตั้ง [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/) (หรือ [OrbStack](https://orbstack.dev/), [Colima](https://github.com/abiosoft/colima)) แล้วเปิดโปรแกรมทิ้งไว้จนสถานะเป็น "running"
+2. ติดตั้ง Git ถ้ายังไม่มี รัน `xcode-select --install` ในเทอร์มินัลจะได้ Git มาด้วย
+3. เปิดเทอร์มินัลแล้วรัน:
+
+   ```bash
+   git clone https://github.com/wutthichaikmm/web-importer.git
+   cd web-importer
+   docker compose -f compose.all-in-one.yaml up -d --build
+   open http://127.0.0.1:8787
+   ```
+
+   ครั้งแรกต้องดาวน์โหลดอิมเมจและสร้างตัวโปรแกรม ใช้เวลาสักครู่
+4. ใช้งานตามหัวข้อ [วิธีใช้งาน](#วิธีใช้งาน) ได้เลย
+5. เลิกใช้: `docker compose -f compose.all-in-one.yaml down` (ตัวอย่างสั่งจากโฟลเดอร์ `web-importer`) และถ้าตั้ง Docker Desktop ให้เปิดตอนเข้าเครื่อง คอนเทนเนอร์จะเริ่มเองตามที่ตั้ง `restart: unless-stopped` ไว้
+
+**ถ้าไม่อยากสร้างตัวโปรแกรมใน Docker** ใช้ Node.js สำหรับ Web Importer และ Docker เฉพาะ FlareSolverr:
+
+```bash
+brew install node
+docker run -d --name flaresolverr -p 8191:8191 ghcr.io/flaresolverr/flaresolverr:latest
+git clone https://github.com/wutthichaikmm/web-importer.git
+cd web-importer
+npm install
+npm start
+```
+
+แล้วเปิด <http://127.0.0.1:8787>
+
+> ผู้พัฒนาใช้ Windows เป็นหลัก ส่วนของ Mac นี้อาศัยอิมเมจ Docker ที่เผยแพร่สำหรับ arm64/amd64 และเทสต์ compose บนเครื่อง Windows แต่ **ยังไม่ได้ทดลองบน Mac จริง** ถ้าพบปัญหา แจ้งใน [Issues](https://github.com/wutthichaikmm/web-importer/issues) พร้อมรุ่นของ macOS และชิปที่ใช้ได้เลย ตัวติดตั้งแบบดับเบิลคลิก (แอป `.dmg`) สำหรับ Mac ยังไม่มี
 
 ## วิธีใช้งาน
 

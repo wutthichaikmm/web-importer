@@ -1,0 +1,19 @@
+# Runs Web Importer together with FlareSolverr, so one command is enough
+# (macOS, Linux and Windows with Docker):
+#   docker compose -f compose.all-in-one.yaml up -d --build
+# Open http://127.0.0.1:8787  (set WEB_IMPORTER_PORT to use another port).
+services:
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    restart: unless-stopped
+
+  web-importer:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - flaresolverr
+    ports:
+      - "127.0.0.1:${WEB_IMPORTER_PORT:-8787}:8787"
+    environment:
+      PORT: "8787"
+      FLARESOLVERR_URL: "http://flaresolverr:8191"
